@@ -1,0 +1,15 @@
+.idea/
+*.tmp
+*.bak
+*.swp
+*~.nib
+.settings/
+.loadpath
+.project
+.externalToolBuilders/
+*.launch
+.buildpath
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.lnk

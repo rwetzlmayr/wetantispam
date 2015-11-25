@@ -1,0 +1,39 @@
+h1. Wet Antispam for Social Engine
+
+*A spam repellent for social networks running Social Engine PHP 4.*
+
+*Wet Antispam* provides a spam filter for forum posts, messages, activity comments, and blog posts.
+
+It is "free and open source":#legal software.
+
+h2(#install). Getting started
+
+# Download the packaged "Social Engine spam filter plugin":http://wetzlmayr.com/wetantispam/download.
+# You *must* provide a valid Akismet API key which you can create by subscribing to an "Akismet plan":https://akismet.com/plans/ which suits your needs. Wet Antispam will work with any Akismet subscription plan.
+# Open the Social engine "Package Manager" panel and install this plugin.
+# Go to the plugin settings at *Plugins > Wet Antispam* and enter your Akismet API key.
+# Ready.
+
+h2. Day-to-day operation
+
+*Wet Antispam* operates invisibly in the background and protects your social network from spammy messages, forum posts, blogs, and blog comments. It will add an entry to the Social Engine error log whenever it detects an attempt to create spam content.
+
+h2(#legal). Legal
+
+Copyright (C) 2015 Robert Wetzlmayr
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software Foundation,
+Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+
+See LICENSE.txt for terms and conditions.
