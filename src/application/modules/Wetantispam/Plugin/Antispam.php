@@ -31,10 +31,15 @@ class Wetantispam_Plugin_Antispam
     protected $_log;
 
     protected $akismet;
+    protected $content;
+    protected $facts;
+    protected $trustlevel;
 
     public function __construct()
     {
         $this->akismet = new Wetantispam_Service_Akismet();
+        $this->facts = new Wetantispam_Plugin_Antispam_Facts();
+        $this->trustlevel = Engine_Api::_()->getApi('settings', 'core')->wetantispam_trustlevel;
     }
 
     /**
@@ -45,68 +50,119 @@ class Wetantispam_Plugin_Antispam
      */
     public function onForumTopicCreateBefore($event)
     {
-        return $this->isSpam($event->getPayload()->description);
+        $this->facts->content = $event->getPayload()->description;
+        $this->facts->resource = __METHOD__;
+        $this->facts->itemcount = $this->getItemCount('posts', 'forum', 'user_id');
+        return $this->isSpam();
     }
 
     public function onForumPostCreateBefore($event)
     {
-        return $this->isSpam($event->getPayload()->body);
+        $this->facts->content = $event->getPayload()->body;
+        $this->facts->resource = __METHOD__;
+        $this->facts->itemcount = $this->getItemCount('posts', 'forum', 'user_id');
+        return $this->isSpam();
     }
 
     public function onForumPostUpdateBefore($event)
     {
-        return $this->isSpam($event->getPayload()->body);
+        $this->facts->content = $event->getPayload()->body;
+        $this->facts->resource = __METHOD__;
+        $this->facts->itemcount = $this->getItemCount('posts', 'forum', 'user_id');
+        return $this->isSpam();
     }
 
     public function onMessagesMessageCreateBefore($event)
     {
-        return $this->isSpam($event->getPayload()->body);
+        $this->facts->content = $event->getPayload()->body;
+        $this->facts->resource = __METHOD__;
+        $this->facts->itemcount = $this->getItemCount('messages', 'messages', 'user_id');
+        return $this->isSpam();
     }
 
     public function onBlogCreateBefore($event)
     {
-        return $this->isSpam($event->getPayload()->body);
+        $this->facts->content = $event->getPayload()->body;
+        $this->facts->resource = __METHOD__;
+        $this->facts->itemcount = $this->getItemCount('blogs', 'blog', 'owner_id');
+        return $this->isSpam();
     }
 
     public function onBlogUpdateBefore($event)
     {
-        return $this->isSpam($event->getPayload()->body);
+        $this->facts->content = $event->getPayload()->body;
+        $this->facts->resource = __METHOD__;
+        $this->facts->itemcount = $this->getItemCount('blogs', 'blog', 'owner_id');
+        return $this->isSpam();
     }
 
     public function onCoreCommentCreateBefore($event)
     {
-        return $this->isSpam($event->getPayload()->body);
+        $this->facts->content = $event->getPayload()->body;
+        $this->facts->resource = __METHOD__;
+        $this->facts->itemcount = $this->getItemCount('comments', 'core', 'poster_id');
+        return $this->isSpam();
     }
 
     /**
-     * @param $content
      * @throws Exception
      * @throws Wetantispam_Plugin_Exception
      */
-    private function isSpam($content)
+    private function isSpam()
     {
-        $isSpam = $this->akismet->isSpam(array(
-            'comment_content' => $content,
+        $isSpam =
+            !$this->isTrustedUser() &&
+            $this->akismet->isSpam(array(
+            'comment_content' => $this->facts->content,
             // DEBUG: Force false positives
 //             'comment_author' => 'viagra-test-123'
         ));
 
         if ($isSpam) {
-            $this->createReport($content);
-            throw new Wetantispam_Plugin_Exception($content);
+            $this->createReport();
+
+            $this->getLog()->log(sprintf(
+                "[%s] Content: %s".
+                "\r\nItem count: %d.".
+                "\r\nUser id: %d.".
+                "\r\n\r\n",
+                $this->facts->resource,
+                $this->facts->content,
+                $this->facts->itemcount,
+                $this->facts->viewer->getIdentity()
+            ), Zend_Log::INFO);
+
+            throw new Wetantispam_Plugin_Exception($this->facts->content);
         }
         return false;
+    }
+
+    private function isTrustedUser()
+    {
+        return false;
+        $trusted = ($this->facts->itemcount >= $this->trustlevel);
+        return $trusted;
+    }
+
+    private function getItemCount($resource, $module, $owner_id_col)
+    {
+        $user_id = $this->facts->viewer->getIdentity();
+        $table = Engine_Api::_()->getDbtable($resource, $module);
+        $select = $table->select();
+        $select->where("$owner_id_col = ?", $user_id);
+        $paginator = Zend_Paginator::factory($select);
+        $count = $paginator->getTotalItemCount();
+        return $count;
     }
 
     /**
      * Create abuse report impersonating the current user reporting herself.
      * Include spam meesage in report.
      *
-     * @param $content string Spam content
      * @throws Exception
      */
 
-    private function createReport($content)
+    private function createReport()
     {
         /** @var $table Core_Model_DbTable_Reports */
         $table = Engine_Api::_()->getItemTable('core_report');
@@ -114,14 +170,12 @@ class Wetantispam_Plugin_Antispam
         $db->beginTransaction();
 
         try {
-            $viewer = Engine_Api::_()->user()->getViewer();
-
             $report = $table->createRow();
             $report->category = 'spam';
-            $report->description = "Spam?\r\n\r\n--\r\n\r\n" . substr(strip_tags($content), 0, 1024) . "\r\n";
-            $report->subject_type = $viewer->getType();
-            $report->subject_id = $viewer->getIdentity();
-            $report->user_id = $viewer->getIdentity();
+            $report->description = "Spam?\r\n\r\n--\r\n\r\n" . substr(strip_tags($this->facts->content), 0, 1024) . "\r\n";
+            $report->subject_type = $this->facts->viewer->getType();
+            $report->subject_id = $this->facts->viewer->getIdentity();
+            $report->user_id = $this->facts->viewer->getIdentity();
             $report->save();
 
             // Increment report count
@@ -134,4 +188,22 @@ class Wetantispam_Plugin_Antispam
         }
     }
 
+    /**
+     * Log an entry into 'wetantispam.log'
+     * TODO: Refactor into stand-alone class.
+     *
+     * @return Zend_Log
+     */
+    private function getLog()
+    {
+        if (null === $this->_log) {
+            $log = new Zend_Log();
+            $log->addWriter(new Zend_Log_Writer_Stream(APPLICATION_PATH . '/temporary/log/wetantispam.log', 'a'));
+            if ('development' == APPLICATION_ENV) {
+                $log->addWriter(new Zend_Log_Writer_Firebug());
+            }
+            $this->_log = $log;
+        }
+        return $this->_log;
+    }
 }

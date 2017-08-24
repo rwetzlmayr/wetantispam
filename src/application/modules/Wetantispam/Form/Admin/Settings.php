@@ -48,6 +48,22 @@ class Wetantispam_Form_Admin_Settings extends Engine_Form
         $this->getElement('akismetapikey')->getValidator('NotEmpty')
             ->setMessage('Please fill in the Akismet API key.', 'isEmpty');
 
+        // Minimum trust level
+        $this->addElement('Text', 'trustlevel', array(
+            'label' => 'Member\'s minimum trust level:',
+            'required' => true,
+            'allowEmpty' => false,
+            'value' => Engine_Api::_()->getApi('settings', 'core')->wetantispam_trustlevel,
+            'validators' => array(
+                array('NotEmpty', true),
+                array('Int'),
+                array('Between', true, array('min' => 0, 'max' => 999)),
+            ),
+            'filters' => array(
+                'StringTrim',
+            ),
+        ));
+
         $this->addElement('Button', 'submit', array(
             'label' => 'Save',
             'type' => 'submit',

@@ -37,6 +37,7 @@ class Wetantispam_AdminIndexController extends Core_Controller_Action_Admin
             $db->beginTransaction();
             try {
                 Engine_Api::_()->getApi('settings', 'core')->wetantispam_akismet_apikey = $form->getValue('akismetapikey');
+                Engine_Api::_()->getApi('settings', 'core')->wetantispam_trustlevel = $form->getValue('trustlevel');
                 $db->commit();
                 $form->addNotice('Your changes have been saved.');
             } catch (Exception $e) {
