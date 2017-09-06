@@ -3,7 +3,7 @@
         array(
             'type' => 'module',
             'name' => 'wetantispam',
-            'version' => '1.1.0',
+            'version' => '1.1.1',
             'path' => 'application/modules/Wetantispam',
             'title' => 'Wet AntiSpam',
             'description' => 'Spam filter for forum posts, messages, blog posts and blog comments.',
