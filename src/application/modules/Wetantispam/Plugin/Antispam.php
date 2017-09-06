@@ -139,7 +139,6 @@ class Wetantispam_Plugin_Antispam
 
     private function isTrustedUser()
     {
-        return false;
         $trusted = ($this->facts->itemcount >= $this->trustlevel);
         return $trusted;
     }
